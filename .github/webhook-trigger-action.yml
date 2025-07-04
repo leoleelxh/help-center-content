@@ -1,0 +1,39 @@
+# 这个文件需要放在内容仓库 (help-center-content) 的 .github/workflows/ 目录下
+name: Trigger Help Center Sync
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+jobs:
+  trigger-sync:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger content sync in help-center-code
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HELP_CENTER_SYNC_TOKEN }}
+          repository: leoleelxh/help-center-code
+          event-type: content-updated
+          client-payload: |
+            {
+              "source_repo": "${{ github.repository }}",
+              "source_ref": "${{ github.ref }}",
+              "source_sha": "${{ github.sha }}",
+              "pusher": "${{ github.actor }}",
+              "timestamp": "${{ github.event.head_commit.timestamp }}"
+            }
+
+      - name: Log trigger success
+        run: |
+          echo "✅ Successfully triggered content sync"
+          echo "📊 Trigger Details:"
+          echo "  - Source: ${{ github.repository }}"
+          echo "  - Branch: ${{ github.ref_name }}"
+          echo "  - Commit: ${{ github.sha }}"
+          echo "  - Actor: ${{ github.actor }}"
